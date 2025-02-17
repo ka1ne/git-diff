@@ -1,0 +1,11 @@
+{
+    "pull_request": {
+        "number": 1,
+        "head": {
+            "ref": "feature-branch"
+        }
+    },
+    "repository": {
+        "full_name": "your-org/your-repo"
+    }
+}
