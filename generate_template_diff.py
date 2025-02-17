@@ -4,6 +4,7 @@ import semver
 import subprocess
 from pathlib import Path
 import json
+import traceback
 
 TEMPLATE_DIR = '.harness/templates'
 ENGINEERING_STANDARDS_URL = "https://developer.harness.io/docs/contributing"
@@ -149,13 +150,18 @@ def generate_diff_output():
 
 if __name__ == '__main__':
     try:
+        print("Starting template diff generation...")
         diff_content = generate_diff_output()
-        # Always use local mode when using act
+        print(f"Found diff content: {diff_content}")
+        
         if os.environ.get('CI') != 'true' or os.environ.get('ACT'):
             print("\nLocal test completed successfully!")
             print(diff_content)
         else:
+            print("Attempting to post comment to PR...")
             post_comment_to_pr(diff_content)
+            print("Successfully posted comment")
     except Exception as e:
         print(f"::error::Failed to generate diff: {str(e)}")
+        traceback.print_exc()
         exit(1) 
