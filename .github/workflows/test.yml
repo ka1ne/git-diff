@@ -9,15 +9,16 @@ jobs:
   test-diff:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write  # Add explicit permissions
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history for diffs
+          fetch-depth: 0  # Need full history
+          ref: ${{ github.event.pull_request.head.sha }}  # Checkout PR head
 
       - name: Run Template Diff
         uses: ./
         env:
-          GITHUB_TOKEN: ${{ github.token }}  # Use the automatic token
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         id: diff 
