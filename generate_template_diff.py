@@ -42,6 +42,16 @@ def post_comment_to_pr(content):
     response = requests.post(api_url, headers=headers, json={'body': content})
     response.raise_for_status()
 
+def setup_git():
+    """Configure git for the workspace."""
+    try:
+        subprocess.run(
+            ['git', 'config', '--global', '--add', 'safe.directory', '/github/workspace'],
+            check=True
+        )
+    except subprocess.CalledProcessError:
+        print("Warning: Could not configure git safe.directory")
+
 def find_changed_templates():
     """Find template files that were changed in this PR."""
     if os.environ.get('CI') != 'true' or os.environ.get('ACT'):
@@ -53,9 +63,15 @@ def find_changed_templates():
                     templates.append(os.path.join(root, file))
         return templates
 
+    # Configure git first
+    setup_git()
+
     # For PR changes, use git diff with the merge base
     base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
     head_ref = os.environ.get('GITHUB_HEAD_REF', 'HEAD')
+    
+    print(f"Base ref: {base_ref}")
+    print(f"Head ref: {head_ref}")
     
     # First, fetch the base branch
     subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
