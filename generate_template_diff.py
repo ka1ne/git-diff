@@ -140,36 +140,43 @@ def generate_diff_output():
     """Generate markdown diff output for all changed templates."""
     changed_templates = find_changed_templates()
     
-    # Start with disclaimer
-    diff_output = [
-        "# Template Changes\n",
-        "## ⚠️ Important Notice\n",
-        "Please ensure your changes follow our engineering standards and contribution guidelines:\n",
-        f"- Review the [Engineering Standards & Contribution Guidelines]({ENGINEERING_STANDARDS_URL})\n",
-        "- Follow semantic versioning (MAJOR.MINOR.PATCH) for template versions\n",
-        "- Template files must follow the format: `vX.Y.Z.yaml` (e.g., `v0.1.0.yaml`)\n",
-        "- Place templates in their respective directories: `.harness/templates/TemplateName/`\n",
-        "- Include appropriate documentation updates\n",
-        "- Test your changes thoroughly\n\n",
-        "## Changes Overview\n"
-    ]
-    
     if not changed_templates:
-        diff_output.append("\n⚠️ No template changes detected in `.harness/templates`\n")
+        # Show disclaimer only when no changes detected
+        diff_output = [
+            "# Template Changes\n",
+            "## ⚠️ Important Notice\n",
+            "Please ensure your changes follow our engineering standards and contribution guidelines:\n",
+            f"- Review the [Engineering Standards & Contribution Guidelines]({ENGINEERING_STANDARDS_URL})\n",
+            "- Follow semantic versioning (MAJOR.MINOR.PATCH) for template versions\n",
+            "- Template files must follow the format: `vX.Y.Z.yaml` (e.g., `v0.1.0.yaml`)\n",
+            "- Place templates in their respective directories: `.harness/templates/TemplateName/`\n",
+            "- Include appropriate documentation updates\n",
+            "- Test your changes thoroughly\n\n",
+            "## Changes Overview\n",
+            "\n⚠️ No template changes detected in `.harness/templates`\n"
+        ]
         return '\n'.join(diff_output)
     
+    # More technical, focused on the review process
+    diff_output = [
+        "# 🔍 Template Review Required\n",
+        f"### 📦 {len(changed_templates)} template modification{'' if len(changed_templates) == 1 else 's'} detected\n",
+        "_Awaiting your technical assessment_ ⚡\n\n"
+    ]
+
     for template in changed_templates:
         template_name = os.path.basename(os.path.dirname(template))
-        diff_output.append(f"\n### Template: `{template_name}`\n")
+        diff_output.append(f"## 📦 Template: `{template_name}`\n")
         
         prev_template = get_previous_version(template)
         if isinstance(prev_template, str) and not os.path.exists(prev_template):
             # This is an error message
             diff_output.append(f"⚠️ **Warning**: {prev_template}\n")
-            diff_output.append("Current template content:\n")
+            diff_output.append("<details><summary>🔍 View Current Template</summary>\n\n")
             with open(template, 'r') as f:
                 content = f.read()
             diff_output.append("```yaml\n" + content + "\n```\n")
+            diff_output.append("</details>\n")
             continue
             
         diff_command = ['git', 'diff', '--no-index', prev_template, template]
@@ -178,10 +185,19 @@ def generate_diff_output():
         current_version = re.search(VERSION_PATTERN, os.path.basename(template)).group(1)
         prev_version = re.search(VERSION_PATTERN, os.path.basename(prev_template)).group(1)
         
-        diff_output.append(f"Comparing versions: `v{prev_version}` → `v{current_version}`\n")
-        diff_output.append("<details><summary>View Changes</summary>\n\n")
+        diff_output.append(f"### 🔄 Version Update: `v{prev_version}` → `v{current_version}`\n")
+        diff_output.append("<details><summary>👉 Click to Review Changes</summary>\n\n")
         diff_output.append("```diff\n" + result.stdout + "\n```\n")
         diff_output.append("</details>\n")
+    
+    # Add footer with helpful links
+    diff_output.extend([
+        "\n---\n",
+        "### 🔍 Helpful Resources\n",
+        f"- [Engineering Standards & Guidelines]({ENGINEERING_STANDARDS_URL})\n",
+        "- [Semantic Versioning](https://semver.org)\n",
+        "\n> 💡 _Please ensure all changes are thoroughly tested before merging_\n"
+    ])
     
     return '\n'.join(diff_output)
 
