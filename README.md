@@ -1,6 +1,6 @@
-# Template Diff Action 🔍
+# Harness Template Diff Action 🔍
 
-A GitHub Action that automatically detects and reviews template version changes in pull requests. It generates clear diffs and posts formatted review comments to help maintainers review template changes effectively.
+A GitHub Action that automatically detects and reviews Harness template version changes in pull requests. It generates clear diffs and posts formatted review comments to help maintainers review template changes effectively.
 
 ## Overview
 
@@ -40,7 +40,7 @@ Add this workflow to your repository at `.github/workflows/template-review.yml`:
               git config --global --add safe.directory /github/workspace
     
           - name: Run Template Diff
-            uses: ka1ne/template-diff-action@v1
+            uses: ka1ne/harness-template-diff-action@v1
             env:
               GITHUB_TOKEN: ${{ github.token }}
               GITHUB_CONTEXT: ${{ toJSON(github) }}

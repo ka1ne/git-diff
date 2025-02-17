@@ -1,4 +1,4 @@
-name: "Template Version Diff"
+name: "Harness Template Diff"
 description: "Generates semantic version diffs for Harness templates"
 author: "ka1ne"
 branding:
