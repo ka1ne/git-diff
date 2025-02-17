@@ -66,7 +66,7 @@ def find_changed_templates():
     # Configure git first
     setup_git()
 
-    # For PR changes, use git diff with the merge base
+    # For PR changes, use git diff with the base branch
     base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
     head_ref = os.environ.get('GITHUB_HEAD_REF', 'HEAD')
     
@@ -74,22 +74,22 @@ def find_changed_templates():
     print(f"Head ref: {head_ref}")
     
     # First, fetch the base branch
-    subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
-    
-    # Get the merge base
-    merge_base = subprocess.run(
-        ['git', 'merge-base', f'origin/{base_ref}', head_ref],
-        capture_output=True,
-        text=True
-    ).stdout.strip()
-    
-    print(f"Using merge base: {merge_base}")
-    
-    # Get changed files between merge base and current HEAD
-    diff_command = ['git', 'diff', '--name-only', merge_base, 'HEAD']
+    try:
+        subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
+        print(f"Successfully fetched origin/{base_ref}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error fetching base branch: {e}")
+        raise
+
+    # Get changed files between base and head
+    diff_command = ['git', 'diff', '--name-only', f'origin/{base_ref}']
     print(f"Running diff command: {' '.join(diff_command)}")
     
     result = subprocess.run(diff_command, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error running diff command: {result.stderr}")
+        raise subprocess.CalledProcessError(result.returncode, diff_command)
+        
     changed_files = result.stdout.splitlines()
     print(f"Changed files: {changed_files}")
     
@@ -140,36 +140,42 @@ def generate_diff_output():
     """Generate markdown diff output for all changed templates."""
     changed_templates = find_changed_templates()
     
-    # Start with disclaimer
-    diff_output = [
-        "# Template Changes\n",
-        "## ⚠️ Important Notice\n",
-        "Please ensure your changes follow our engineering standards and contribution guidelines:\n",
-        f"- Review the [Engineering Standards & Contribution Guidelines]({ENGINEERING_STANDARDS_URL})\n",
-        "- Follow semantic versioning (MAJOR.MINOR.PATCH) for template versions\n",
-        "- Template files must follow the format: `vX.Y.Z.yaml` (e.g., `v0.1.0.yaml`)\n",
-        "- Place templates in their respective directories: `.harness/templates/TemplateName/`\n",
-        "- Include appropriate documentation updates\n",
-        "- Test your changes thoroughly\n\n",
-        "## Changes Overview\n"
-    ]
-    
     if not changed_templates:
-        diff_output.append("\n⚠️ No template changes detected in `.harness/templates`\n")
+        # Show disclaimer only when no changes detected
+        diff_output = [
+            "# Template Changes\n",
+            "## ⚠️ Important Notice\n",
+            "Please ensure your changes follow our engineering standards and contribution guidelines:\n",
+            f"- Review the [Engineering Standards & Contribution Guidelines]({ENGINEERING_STANDARDS_URL})\n",
+            "- Follow semantic versioning (MAJOR.MINOR.PATCH) for template versions\n",
+            "- Template files must follow the format: `vX.Y.Z.yaml` (e.g., `v0.1.0.yaml`)\n",
+            "- Place templates in their respective directories: `.harness/templates/TemplateName/`\n",
+            "- Include appropriate documentation updates\n",
+            "- Test your changes thoroughly\n\n",
+            "## Changes Overview\n",
+            "\n⚠️ No template changes detected in `.harness/templates`\n"
+        ]
         return '\n'.join(diff_output)
     
+    # More technical, focused on the review process
+    diff_output = [
+        "# 🔍 Template Review Required\n",
+        f"### ⚠️ {len(changed_templates)} template modification{'' if len(changed_templates) == 1 else 's'} detected\n",
+    ]
+
     for template in changed_templates:
         template_name = os.path.basename(os.path.dirname(template))
-        diff_output.append(f"\n### Template: `{template_name}`\n")
+        diff_output.append(f"## 📦 Template: `{template_name}`\n")
         
         prev_template = get_previous_version(template)
         if isinstance(prev_template, str) and not os.path.exists(prev_template):
             # This is an error message
             diff_output.append(f"⚠️ **Warning**: {prev_template}\n")
-            diff_output.append("Current template content:\n")
+            diff_output.append("<details><summary>🔍 View Current Template</summary>\n\n")
             with open(template, 'r') as f:
                 content = f.read()
             diff_output.append("```yaml\n" + content + "\n```\n")
+            diff_output.append("</details>\n")
             continue
             
         diff_command = ['git', 'diff', '--no-index', prev_template, template]
@@ -178,10 +184,21 @@ def generate_diff_output():
         current_version = re.search(VERSION_PATTERN, os.path.basename(template)).group(1)
         prev_version = re.search(VERSION_PATTERN, os.path.basename(prev_template)).group(1)
         
-        diff_output.append(f"Comparing versions: `v{prev_version}` → `v{current_version}`\n")
-        diff_output.append("<details><summary>View Changes</summary>\n\n")
+        diff_output.append(f"### 🔄 Version Update: `v{prev_version}` → `v{current_version}`\n")
+        diff_output.append("\n> ### 📝 &nbsp; Review Changes\n")
+        diff_output.append("<details>\n")
+        diff_output.append("<summary><b>&nbsp;&nbsp;&nbsp;&nbsp;👉 Click to expand diff &nbsp;⤵️</b></summary>\n\n")
         diff_output.append("```diff\n" + result.stdout + "\n```\n")
-        diff_output.append("</details>\n")
+        diff_output.append("</details>\n\n")
+    
+    # Add footer with helpful links
+    diff_output.extend([
+        "\n---\n",
+        "### 🔍 Helpful Resources\n",
+        f"- [Engineering Standards & Guidelines]({ENGINEERING_STANDARDS_URL})\n",
+        "- [Semantic Versioning](https://semver.org)\n",
+        "\n> 💡 _Please ensure all changes are thoroughly tested before merging_\n"
+    ])
     
     return '\n'.join(diff_output)
 
