@@ -8,6 +8,8 @@ on:
 jobs:
   test-diff:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # Add explicit permissions
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,5 +18,6 @@ jobs:
       - name: Run Template Diff
         uses: ./
         env:
+          GITHUB_TOKEN: ${{ github.token }}  # Use the automatic token
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         id: diff 
