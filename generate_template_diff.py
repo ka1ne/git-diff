@@ -66,7 +66,7 @@ def find_changed_templates():
     # Configure git first
     setup_git()
 
-    # For PR changes, use git diff with the merge base
+    # For PR changes, use git diff with the base branch
     base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
     head_ref = os.environ.get('GITHUB_HEAD_REF', 'HEAD')
     
@@ -74,22 +74,22 @@ def find_changed_templates():
     print(f"Head ref: {head_ref}")
     
     # First, fetch the base branch
-    subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
-    
-    # Get the merge base
-    merge_base = subprocess.run(
-        ['git', 'merge-base', f'origin/{base_ref}', head_ref],
-        capture_output=True,
-        text=True
-    ).stdout.strip()
-    
-    print(f"Using merge base: {merge_base}")
-    
-    # Get changed files between merge base and current HEAD
-    diff_command = ['git', 'diff', '--name-only', merge_base, 'HEAD']
+    try:
+        subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
+        print(f"Successfully fetched origin/{base_ref}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error fetching base branch: {e}")
+        raise
+
+    # Get changed files between base and head
+    diff_command = ['git', 'diff', '--name-only', f'origin/{base_ref}']
     print(f"Running diff command: {' '.join(diff_command)}")
     
     result = subprocess.run(diff_command, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error running diff command: {result.stderr}")
+        raise subprocess.CalledProcessError(result.returncode, diff_command)
+        
     changed_files = result.stdout.splitlines()
     print(f"Changed files: {changed_files}")
     
