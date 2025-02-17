@@ -42,6 +42,16 @@ def post_comment_to_pr(content):
     response = requests.post(api_url, headers=headers, json={'body': content})
     response.raise_for_status()
 
+def setup_git():
+    """Configure git for the workspace."""
+    try:
+        subprocess.run(
+            ['git', 'config', '--global', '--add', 'safe.directory', '/github/workspace'],
+            check=True
+        )
+    except subprocess.CalledProcessError:
+        print("Warning: Could not configure git safe.directory")
+
 def find_changed_templates():
     """Find template files that were changed in this PR."""
     if os.environ.get('CI') != 'true' or os.environ.get('ACT'):
@@ -53,17 +63,38 @@ def find_changed_templates():
                     templates.append(os.path.join(root, file))
         return templates
 
-    # Use git diff against base branch for PR changes
+    # Configure git first
+    setup_git()
+
+    # For PR changes, use git diff with the merge base
     base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
-    diff_command = ['git', 'diff', '--name-only', f'origin/{base_ref}...HEAD']
-    print(f"Running diff command: {' '.join(diff_command)}")  # Debug output
+    head_ref = os.environ.get('GITHUB_HEAD_REF', 'HEAD')
+    
+    print(f"Base ref: {base_ref}")
+    print(f"Head ref: {head_ref}")
+    
+    # First, fetch the base branch
+    subprocess.run(['git', 'fetch', 'origin', base_ref], check=True)
+    
+    # Get the merge base
+    merge_base = subprocess.run(
+        ['git', 'merge-base', f'origin/{base_ref}', head_ref],
+        capture_output=True,
+        text=True
+    ).stdout.strip()
+    
+    print(f"Using merge base: {merge_base}")
+    
+    # Get changed files between merge base and current HEAD
+    diff_command = ['git', 'diff', '--name-only', merge_base, 'HEAD']
+    print(f"Running diff command: {' '.join(diff_command)}")
     
     result = subprocess.run(diff_command, capture_output=True, text=True)
     changed_files = result.stdout.splitlines()
-    print(f"Changed files: {changed_files}")  # Debug output
+    print(f"Changed files: {changed_files}")
     
     templates = [f for f in changed_files if f.startswith(TEMPLATE_DIR) and re.search(VERSION_PATTERN, f)]
-    print(f"Detected template changes: {templates}")  # Debug output
+    print(f"Detected template changes: {templates}")
     return templates
 
 def get_previous_version(template_path):
