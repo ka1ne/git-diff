@@ -1,0 +1,10 @@
+name: "Template Version Diff"
+description: "Generates semantic version diffs for Harness templates"
+author: "ka1ne"
+branding:
+  icon: "git-pull-request"
+  color: "blue"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
