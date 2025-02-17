@@ -186,9 +186,11 @@ def generate_diff_output():
         prev_version = re.search(VERSION_PATTERN, os.path.basename(prev_template)).group(1)
         
         diff_output.append(f"### 🔄 Version Update: `v{prev_version}` → `v{current_version}`\n")
-        diff_output.append("<details><summary>👉 Click to Review Changes</summary>\n\n")
+        diff_output.append("\n> ### 📝 &nbsp; Review Changes\n")
+        diff_output.append("<details>\n")
+        diff_output.append("<summary><b>&nbsp;&nbsp;&nbsp;&nbsp;👉 Click to expand diff &nbsp;⤵️</b></summary>\n\n")
         diff_output.append("```diff\n" + result.stdout + "\n```\n")
-        diff_output.append("</details>\n")
+        diff_output.append("</details>\n\n")
     
     # Add footer with helpful links
     diff_output.extend([
