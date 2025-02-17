@@ -160,8 +160,7 @@ def generate_diff_output():
     # More technical, focused on the review process
     diff_output = [
         "# 🔍 Template Review Required\n",
-        f"### 📦 {len(changed_templates)} template modification{'' if len(changed_templates) == 1 else 's'} detected\n",
-        "_Awaiting your technical assessment_ ⚡\n\n"
+        f"### ⚠️ {len(changed_templates)} template modification{'' if len(changed_templates) == 1 else 's'} detected\n",
     ]
 
     for template in changed_templates:
