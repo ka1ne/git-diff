@@ -1,0 +1,25 @@
+name: Test Template Diff
+
+on:
+  pull_request:
+    paths:
+      - '.harness/templates/**'
+
+jobs:
+  test-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up test environment
+        run: |
+          mkdir -p .harness/templates/TestTemplate
+          echo "content: v1" > .harness/templates/TestTemplate/v0.1.0.yaml
+          echo "content: v2" > .harness/templates/TestTemplate/v0.2.0.yaml
+
+      - name: Run Template Diff
+        uses: ./
+        env:
+          GITHUB_TOKEN: "test-token"
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+          ACT: "true" 
