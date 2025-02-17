@@ -44,7 +44,6 @@ def post_comment_to_pr(content):
 
 def find_changed_templates():
     """Find template files that were changed in this PR."""
-    # Always use local testing mode when using act
     if os.environ.get('CI') != 'true' or os.environ.get('ACT'):
         # For local testing, just get all template files
         templates = []
@@ -54,11 +53,18 @@ def find_changed_templates():
                     templates.append(os.path.join(root, file))
         return templates
 
-    # Original GitHub PR logic
-    diff_command = ['git', 'diff', '--name-only', 'origin/main...HEAD']
+    # Use git diff against base branch for PR changes
+    base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
+    diff_command = ['git', 'diff', '--name-only', f'origin/{base_ref}...HEAD']
+    print(f"Running diff command: {' '.join(diff_command)}")  # Debug output
+    
     result = subprocess.run(diff_command, capture_output=True, text=True)
     changed_files = result.stdout.splitlines()
-    return [f for f in changed_files if f.startswith(TEMPLATE_DIR) and re.search(VERSION_PATTERN, f)]
+    print(f"Changed files: {changed_files}")  # Debug output
+    
+    templates = [f for f in changed_files if f.startswith(TEMPLATE_DIR) and re.search(VERSION_PATTERN, f)]
+    print(f"Detected template changes: {templates}")  # Debug output
+    return templates
 
 def get_previous_version(template_path):
     """Find the previous version of a template based on semver."""
@@ -151,6 +157,9 @@ def generate_diff_output():
 if __name__ == '__main__':
     try:
         print("Starting template diff generation...")
+        print(f"Current directory contents: {os.listdir('.')}")
+        print(f"Template directory contents: {os.listdir(TEMPLATE_DIR)}")
+        
         diff_content = generate_diff_output()
         print(f"Found diff content: {diff_content}")
         
